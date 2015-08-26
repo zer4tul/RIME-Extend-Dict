@@ -8,17 +8,24 @@ import binascii
 import pdb
 import os
 from IME import *
+from argparse import ArgumentParser
 
-from tempfile import NamedTemporaryFile
-
+def argparser():
+    parser = ArgumentParser(description="Convert from other word dictionary to RIME's yaml dictionary format, support multiple types.")
+    parser.add_argument('-o', '--output', type=str, default='', help='Write ALL results to spicified file, otherwise write into separate files with original name.')
+    parser.add_argument('files', nargs='+', type=str, help='Dictionary files')
+    return parser.parse_args()
 
 
 if __name__ == '__main__':
 
+    parser = argparser()
+    output = parser.output
     #将要转换的词库添加在这里就可以了
-    FILES = sys.argv[1:]
+    files = parser.files
     
-    for f in FILES:
+    d = tools.WordDict()
+    for f in files:
         filename, fileext = os.path.splitext(os.path.basename(f))
         if fileext.lower() == '.scel':
             worddict = Sougou.scel()
@@ -26,19 +33,17 @@ if __name__ == '__main__':
             worddict = Ziguang.uwl()
         elif fileext.lower() == '.bdict':
             worddict = Baidu.bdict()
+        else:
+            raise Exception("File type not supported yet.")
 
-        # 获取文件名
-        OUTPUT = filename + ".txt"
-        d = worddict.load(f)
-        d.dump(OUTPUT)
-        #保存结果
-        #f = open(OUTPUT,'w')
-        
-#    #保存结果
-#    f = open('sougou.txt','w')
-#    for count,py,word in GTable:
-#        #GTable保存着结果，是一个列表，每个元素是一个元组(词频,拼音,中文词组)，有需要的话可以保存成自己需要个格式
-#        #我没排序，所以结果是按照上面输入文件的顺序
-#        f.write( unicode('{%(count)s}' %{'count':count}+py+' '+ word).encode('GB18030') )#最终保存文件的编码，可以自给改
-#        f.write('\n')
-#    f.close()    
+
+        if not output:
+            d = worddict.load(f)
+
+            # 获取文件名
+            output = filename + ".dict.yaml"
+            d.dump(output)
+        else:
+            d.merge(worddict.load(f))
+    if output:
+        d.dump(output)

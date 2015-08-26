@@ -70,6 +70,9 @@ def byte2str(data):
         i += 2
     return ret
 
+def uniq(l):
+    return list(set(l))
+
 class Word(object):
     def __init__(self, value='', encoding='utf-8', count=0):
         self.value = value
@@ -103,7 +106,6 @@ class WordDict(dict):
             tmp_string += key + ':' + '\t'.join(w)+'\n'
         #    tempfile.write(line)
         tmp_string = self._opencc(tmp_string)
-        print(tmp_string)
         for line in tmp_string.split('\n'):
             key, words = line.split(':', 1)
             words = words.split('\t')
@@ -113,11 +115,32 @@ class WordDict(dict):
 #            for i in xrange(len(self[key])):
 #                self[key][i].value = self._opencc(self[key][i].value)
 
+    def add(self, key, word):
+        if not self.has_key(key):
+            self[key] = []
+        if type(word) == Word:
+            self[key].append(word)
+        elif type(word) == list:
+            self[key] = self[key] + word
+        self[key] = uniq(self[key])
+
     def word(self, key):
         result = []
         for w in self[key]:
             result.append(w.value)
         return result
+
+    def merge(self, *args):
+        '''
+        Given any number of dicts, shallow copy and merge into a new dict,
+        precedence goes to key value pairs in latter dicts.
+        '''
+        for dictionary in args:
+            if type(dictionary) != WordDict:
+                raise TypeError('Expect WordDict but get %s' % (type(dictionary)))
+            for i in dictionary.keys():
+                self.add(i, dictionary[i])
+
 
     def dump(self, filename, order = 'pinyin'):
         f = open(filename, 'w')
@@ -125,7 +148,7 @@ class WordDict(dict):
         key = self.keys()
         key.sort()
         for k in key:
-            line = '\n'.join(self.word(k))+'\n'
+            line = '\n'.join(map(lambda x: x+'\t'+k, self.word(k)))+'\n'
             f.write(line)
         f.close()
 

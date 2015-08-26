@@ -63,7 +63,7 @@ class scel(BaseDictFile):
             index = struct.unpack('H',data[pos]+data[pos+1])[0]
             pinyin_list.append(self.pinyin_table[index])
             pos += 2    
-        return ' '.join(pinyin_list)
+        return ' '.join(pinyin_list).encode('utf-8')
 
     #获取一个词组
     def _getWord(self, data):
