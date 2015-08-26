@@ -111,13 +111,13 @@ class scel(BaseDictFile):
                 pos += 2
                 count  = struct.unpack('H',data[pos]+data[pos+1])[0]
 
-                w = Word(word.encode('utf-8'), count = count)
+                w = Word()
+
+                w.value = word.encode('utf-8')
+                w.count = count
 
                 #保存
-                if self.dictionary.has_key(py):
-                    self.dictionary[py].append(w)
-                else:
-                    self.dictionary[py] = [w]
+                self.dictionary.add(py, w)
 
                 #到下个词的偏移位置
                 pos +=  ext_len

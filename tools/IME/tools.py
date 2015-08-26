@@ -71,7 +71,14 @@ def byte2str(data):
     return ret
 
 def uniq(l):
-    return list(set(l))
+    tmp_dict = {}
+    for i in l:
+        key = i.value
+        if not tmp_dict.has_key(key):
+            tmp_dict[key] = i
+        else:
+            tmp_dict[key].count += i.count
+    return tmp_dict.values()
 
 class Word(object):
     def __init__(self, value='', encoding='utf-8', count=0):
@@ -115,13 +122,15 @@ class WordDict(dict):
 #            for i in xrange(len(self[key])):
 #                self[key][i].value = self._opencc(self[key][i].value)
 
-    def add(self, key, word):
+    def add(self, key, w):
         if not self.has_key(key):
             self[key] = []
-        if type(word) == Word:
-            self[key].append(word)
-        elif type(word) == list:
-            self[key] = self[key] + word
+        if type(w) == Word:
+            self[key].append(w)
+        elif type(w) == list:
+            self[key] = self[key] + w
+        else:
+            raise TypeError
         self[key] = uniq(self[key])
 
     def word(self, key):
