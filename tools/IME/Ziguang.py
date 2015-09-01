@@ -25,17 +25,31 @@ class uwl(BaseDictFile):
         self.len_code_dict = [0x05, 0x87, 0x09, 0x8B, 0x0D, 0x8F, 0x11, 0x13, 0x15, 0x17, 0x19]
 
     def get_dict_info(self, data):
+        #typedef struct WORDLIBHEADER
+        #{
+        #	int			signature;							//词库的签名
+        #	TCHAR		name[WORDLIB_NAME_LENGTH];			//词库的名称
+        #	TCHAR		author_name[WORDLIB_AUTHOR_LENGTH];	//词库作者名称
+        #	int			word_count;							//词汇数目
+        #	int			page_count;							//已分配的页数
+        #	int			can_be_edit;						//是否可以编辑
+        #	int			pim_version;						//输入法版本号（兼容性考虑）
+        #	int			index[CON_NUMBER][CON_NUMBER];		//索引表
+        #}
         # 0~3字节是词库的hash值
-        self.hash = struct.unpack('I', data[:4])
-        # 4~23字节是词库名（长度16，左对齐）
-        # 24~43字节是词库作者名（长度16，右对齐）
-        self.name, self.author = byte2str(struct.unpack('40c',data[4:44]))
-        # 44~48字节是词汇总量
-        # 48~51字节是segment数量
+        self.signature = struct.unpack('I', data[:4])
+        # 4~35  字节：词库名
+        # 36~67 字节：词库作者名
+        self.name = byte2str(data[4:36]).rstrip('\x00')
+        self.author = byte2str(data[36:68]).rstrip('\x00')
+        # 68~71 字节：词汇数量
+        # 72~75 字节：已分配的页面（page）数量
+        # 76~89 字节：是否可写的标识位
+        # 80~83 字节：输入法版本号
         # 剩下的3020字节不清楚是什么，有大量的空白
-        self.word_count = struct.unpack('I',data[44:48])[0]
-        self.segment_count = struct.unpack('I',data[48:52])[0]
-        return self.word_count, self.segment_count
+        self.word_count = struct.unpack('I',data[68:72])[0]
+        self.segment_count = struct.unpack('I',data[72:76])[0]
+        return self.name, self.author, self.word_count, self.segment_count
 
 #    def _parse(self, data):
 #        # 没搞懂这玩意是干嘛的
@@ -192,6 +206,14 @@ class uwl(BaseDictFile):
         return (word, read_byte)
 
     def _parse_segment(self, data):
+        #typedef	struct PAGE
+        #{
+        #	int			page_no;							//页号
+        #	int			next_page_no;						//下一个页号，-1标识结束
+        #	int			length_flag;						//本页包含的词汇长度的标志
+        #	int			data_length;						//已经使用的数据长度
+        #	char		data[WORDLIB_PAGE_DATA_LENGTH];		//数据开始
+        #} PAGE;
         # Segment 单独取出来处理
         pos = 0
         # 0~3字节是索引编号（segment的编号，对应上面的segment_count），从0开始计数
@@ -236,4 +258,3 @@ class uwl(BaseDictFile):
 #                print(repr(data[pos:pos+self.segment_length]))
 #                raise Exception(e)
         return self.dictionary
-
