@@ -7,9 +7,10 @@ from tools import *
 class uwl(BaseDictFile):
     def __init__(self):
         BaseDictFile.__init__(self)
-        self.magic_number = '\x94\x19\x74\x14'
-        self.offset = 0x44
+        self.hash = ''
         self.word_count = 0
+        self.name = ''
+        self.author = ''
         self.segment_count = 0
         self.segment_start = 0xc00
         self.segment_length = 0x400
@@ -24,12 +25,16 @@ class uwl(BaseDictFile):
         self.len_code_dict = [0x05, 0x87, 0x09, 0x8B, 0x0D, 0x8F, 0x11, 0x13, 0x15, 0x17, 0x19]
 
     def get_dict_info(self, data):
-        # 0~3字节是固定的magic_number, 剩下的40字节不清楚是什么
+        # 0~3字节是词库的hash值
+        self.hash = struct.unpack('I', data[:4])
+        # 4~23字节是词库名（长度16，左对齐）
+        # 24~43字节是词库作者名（长度16，右对齐）
+        self.name, self.author = byte2str(struct.unpack('40c',data[4:44]))
         # 44~48字节是词汇总量
         # 48~51字节是segment数量
         # 剩下的3020字节不清楚是什么，有大量的空白
-        self.word_count = struct.unpack('I',data[self.offset:self.offset+4])[0]
-        self.segment_count = struct.unpack('I',data[self.offset+4:self.offset+8])[0]
+        self.word_count = struct.unpack('I',data[44:48])[0]
+        self.segment_count = struct.unpack('I',data[48:52])[0]
         return self.word_count, self.segment_count
 
 #    def _parse(self, data):
