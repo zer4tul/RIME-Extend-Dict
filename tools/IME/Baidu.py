@@ -21,28 +21,48 @@ class bdict(BaseDictFile):
     def _get_word_len(self, data, pos = 0):
         # 单词长度
         length = struct.unpack('I', data[pos:pos+4])[0]
+        char = struct.unpack('B', data[pos+4])[0]
+        pure_english = False
+        if 0x41 <= char <= 0x7a:
+            pure_english = True
         #print(repr(data[pos:pos+length*3+1]))
-        return length
+        return (length, pure_english)
 
-    def _get_word(self, data, length = 0):
+    def _get_word(self, data, length = 0, pure_english = False):
         pos = 0
         word = Word()
         pinyin = []
         for i in xrange(length):
-            tmp = struct.unpack('2B', data[pos:pos+2])
-            pos = pos + 2
-            sm = tmp[0]
-            ym = tmp[1]
-            pinyin.append(self.shengmu[sm] + self.yunmu[ym])
-#            try:
-#                pinyin.append(self.shengmu[sm] + self.yunmu[ym])
-#            except IndexError:
-#                print(repr(data))
-        word.pinyin = ' '.join(pinyin)
-        hanzi = byte2str(data[pos:pos+ length*2])
-        pos = pos+ length*2
-        word.value = hanzi.encode('utf-8')
-#        print(word)
+            char = struct.unpack('B', data[pos])[0]
+            pos += 1
+            if pure_english:
+                # 如果读取到的首个hex值落在字母区域（0x41 ~ 0x7a）内，说明是纯英文，后面的内容直接读取即可
+                pinyin.append(chr(char).lower())
+                word.value += chr(char)
+            else:
+                if char == 0xff:
+                    # 声母部分如果是'\xff'，说明这是中英文混输的英文字母，不需要做拼音词表转换，直接读取韵母部分即可
+                    sm = ''
+                    ym = struct.unpack('c', data[pos])[0]
+                    pos += 1
+                    pinyin.append('' + ym)
+                else:
+                    sm = char
+                    ym = struct.unpack('B', data[pos])[0]
+                    pos += 1
+                    pinyin.append(self.shengmu[sm] + self.yunmu[ym])
+#                    try:
+#                        pinyin.append(self.shengmu[sm] + self.yunmu[ym])
+#                    except IndexError:
+#                        print(repr(data))
+#                        raise IndexError
+        if pure_english:
+            word.pinyin = ' '.join(pinyin)
+        else:
+            word.pinyin = ' '.join(pinyin)
+            hanzi = byte2str(data[pos:pos+ length*2])
+            pos = pos+ length*2
+            word.value = hanzi.encode('utf-8')
         return word
 
     def get_dict_info(self, data):
@@ -69,12 +89,16 @@ class bdict(BaseDictFile):
 #            if pos >= self.end_position:
 #                break
             # 这里的长度是算字数的，实际长度是 拼音数(length * 2) + 字符长度(length * 2)
-            length = self._get_word_len(data, pos = pos)
+            length, pure_english = self._get_word_len(data, pos = pos)
             pos += 4
             #print('*'*60)
             #print(repr(data[pos:pos+length*4]))
-            word = self._get_word(data[pos:pos+length*4], length = length)
-            pos = pos + length * 4
+            if pure_english:
+                word = self._get_word(data[pos:pos+length], length = length, pure_english = True)
+                pos = pos + length
+            else:
+                word = self._get_word(data[pos:pos+length*4], length = length)
+                pos = pos + length * 4
             if word.value:
                 if self.dictionary.has_key(word.pinyin):
                     self.dictionary[word.pinyin].append(word)

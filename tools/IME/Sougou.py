@@ -29,10 +29,21 @@ from tools import *
 class scel(BaseDictFile):
     def __init__(self):
         BaseDictFile.__init__(self)
+        # 文件头
+        self.head = '\x40\x15\x00\x00\x44\x43\x53\x01\x01\x00\x00\x00'
         #拼音表偏移，
-        self.start_pinyin = 0x1540
+        self.start_pinyin     = 0x1540
         #汉语词组表偏移
-        self.start_chinese = 0x2628
+        self.start_chinese    = 0x2628
+        # 词库名
+        self.dict_name        = ''
+        # 词库分类
+        self.dict_category    = ''
+        # 词库描述
+        self.dict_description = ''
+        # 词库样例
+        self.dict_sample      = ''
+
 
     #获取拼音表
     def _getPyTable(self, data):
@@ -123,26 +134,33 @@ class scel(BaseDictFile):
                 pos +=  ext_len
 
 
+    def get_dict_info(self, data):
+
+        self.dict_name        = byte2str(data[0x130:0x338]).encode(get_locale())
+        self.dict_category    = byte2str(data[0x338:0x540]).encode(get_locale())
+        self.dict_description = byte2str(data[0x540:0xd40]).encode(get_locale())
+        self.dict_sample      = byte2str(data[0xd40:self.start_pinyin]).encode(get_locale())
+
+
     def load(self, filename):
         #解析结果
         #元组(词频,拼音,中文词组)的列表
         GTable = []
 
-        print '-'*60
+        #print '-'*60
         f = open(filename,'rb')
         data = f.read()
         f.close()
 
+        if data[0:12] != self.head:
+            print "It's not a .scel file"
+            sys.exit(1)
 
-        if data[0:12] !="\x40\x15\x00\x00\x44\x43\x53\x01\x01\x00\x00\x00":
-            print "确认你选择的是搜狗(.scel)词库?"
-            sys.exit(0)
+        return self.read(data)
+
+    def read(self, data):
         #pdb.set_trace()
-
-        print "词库名：" ,byte2str(data[0x130:0x338]).encode(get_locale())
-        print "词库类型：" ,byte2str(data[0x338:0x540]).encode(get_locale())
-        print "描述信息：" ,byte2str(data[0x540:0xd40]).encode(get_locale())
-        print "词库示例：",byte2str(data[0xd40:self.start_pinyin]).encode(get_locale())
+        self.get_dict_info(data[:self.start_pinyin])
 
         self._getPyTable(data[self.start_pinyin:self.start_chinese])
         self._getChinese(data[self.start_chinese:])
