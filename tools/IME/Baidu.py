@@ -61,6 +61,7 @@ class bdict(BaseDictFile):
         else:
             word.pinyin = ' '.join(pinyin)
             hanzi = byte2str(data[pos:pos+ length*2])
+            hanzi = hanzi.strip('\x00')
             pos = pos+ length*2
             word.value = hanzi.encode('utf-8')
         return word
@@ -101,9 +102,16 @@ class bdict(BaseDictFile):
                 pos = pos + length * 4
             if word.value:
                 if self.dictionary.has_key(word.pinyin):
-                    self.dictionary[word.pinyin].append(word)
+                    # 校验拼音和词汇的长度是否相等，如不相等则丢弃
+                    if len(word.value.decode('utf-8')) == len(word.pinyin.split(' ')):
+                        self.dictionary[word.pinyin].append(word)
+        #                print(word.value.decode('utf-8'), len(word.value.decode('utf-8')), word.pinyin,len(word.pinyin.split(' ')))
+                    #if word.value.decocde('utf-8') == u'\u7fbd\u5b50':
+#                        print(word.dump())
                 else:
-                    self.dictionary[word.pinyin] = []
-                    self.dictionary[word.pinyin].append(word)
+                    if len(word.value.decode('utf-8')) == len(word.pinyin.split(' ')):
+                        self.dictionary[word.pinyin] = []
+                        self.dictionary[word.pinyin].append(word)
+#                        print(word.dump())
 
         return self.dictionary

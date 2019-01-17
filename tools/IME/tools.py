@@ -88,6 +88,13 @@ class Word(object):
         self.encoding = encoding
     def __repr__(self):
         return self.value
+    def dump(self):
+        return {'value' : self.value,
+                'count' : self.count,
+                'pinyin' : self.pinyin,
+                'encoding' : self.encoding
+                }
+
 
 class WordDict(dict):
     def _opencc(self, string):
@@ -116,8 +123,23 @@ class WordDict(dict):
         for line in tmp_string.split('\n'):
             key, words = line.split(':', 1)
             words = words.split('\t')
+
             for i in xrange(len(self[key])):
-                self[key][i].value = words[i]
+                    self[key][i].value = words[i]
+#            print(self[key], len(self[key]), words)
+#            for i in xrange(len(self[key])):
+#                if len(self[key][i].value.decode('utf-8')) == len(words[i].decode('utf-8')):
+#                    self[key][i].value = words[i]
+#                else:
+#                    for j in xrange(len(words)):
+#                        #print(self[key][i].value.decode('utf-8'), words[j].decode('utf-8'))
+#                        print(self[key][i].value)
+#                        print(words[j])
+#                        #if self[key][i].value.decode('utf-8') == words[j].decode('utf-8'):
+#                        if len(self[key][i].value) == len(words[j].decode('utf-8')):
+#                            print(self[key])
+#                            self[key][i].value = words[j]
+
 #            self[key] = map(self._opencc, self[key])
 #            for i in xrange(len(self[key])):
 #                self[key][i].value = self._opencc(self[key][i].value)
